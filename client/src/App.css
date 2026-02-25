@@ -1069,6 +1069,116 @@ button {
   color: #6666a0;
 }
 
+/* ── Tab bar ─────────────────────────────────────────── */
+
+.fp-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.fp-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4a4a72;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.fp-tab:hover {
+  color: #8880c0;
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.fp-tab--active {
+  color: #c4b5fd;
+  border-bottom-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.06);
+}
+
+.fp-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 4px;
+  background: rgba(124, 58, 237, 0.25);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  line-height: 1;
+}
+
+.fp-tab-badge--ok {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: #6ee7b7;
+}
+
+/* Tab content pane */
+.fp-tab-pane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.3) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fp-tab-desc {
+  font-size: 0.72rem;
+  color: #5a5a82;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.fp-tab-desc strong {
+  color: #fde68a;
+}
+
+.fp-export-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fp-export-group-label {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a4a72;
+  padding: 0 0.1rem;
+}
+
+.fp-export-group-desc {
+  font-size: 0.68rem;
+  color: #4a4a68;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.fp-empty--tab {
+  padding: 1.5rem 0.5rem;
+}
+
 .fp-remove-btn {
   display: flex;
   align-items: center;

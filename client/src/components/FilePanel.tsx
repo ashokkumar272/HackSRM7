@@ -1,7 +1,8 @@
 import { useState } from "react";
 import {
   FileText, Upload, X, Loader2, Hash, Cpu, HardDrive,
-  AlertCircle, ChevronDown, ChevronLeft, ChevronRight, Layers, Zap, Paperclip, Download, ShieldCheck,
+  AlertCircle, ChevronDown, ChevronLeft, ChevronRight, Layers, Zap,
+  Paperclip, Download, ShieldCheck,
 } from "lucide-react";
 import type { FileEntry, AnalyzedFile } from "../hooks/useMultiFileAnalyzer";
 import { formatSize } from "../hooks/useFileAnalyzer";
@@ -23,7 +24,6 @@ function FileCard({ entry, onRemove }: FileCardProps) {
 
   return (
     <div className={`fc-card${hasError ? " fc-card--error" : ""}`}>
-      {/* Header row — clicking toggles details */}
       <div
         className="fc-header"
         onClick={() => !hasError && setOpen((v) => !v)}
@@ -41,18 +41,10 @@ function FileCard({ entry, onRemove }: FileCardProps) {
             <FileText size={16} />
           )}
         </div>
-
-        <span className="fc-name" title={file.name}>
-          {file.name}
-        </span>
-
+        <span className="fc-name" title={file.name}>{file.name}</span>
         {!hasError && (
-          <ChevronDown
-            size={14}
-            className={`fc-chevron${open ? " open" : ""}`}
-          />
+          <ChevronDown size={14} className={`fc-chevron${open ? " open" : ""}`} />
         )}
-
         <button
           className="fc-remove"
           onClick={(e) => { e.stopPropagation(); onRemove(id); }}
@@ -63,9 +55,7 @@ function FileCard({ entry, onRemove }: FileCardProps) {
         </button>
       </div>
 
-      {hasError && (
-        <div className="fc-error-msg">{errorMsg}</div>
-      )}
+      {hasError && <div className="fc-error-msg">{errorMsg}</div>}
 
       {!hasError && (
         <div className={`fc-details${open ? " open" : ""}`}>
@@ -73,9 +63,7 @@ function FileCard({ entry, onRemove }: FileCardProps) {
             <div className="fc-detail-row">
               <HardDrive size={12} className="fc-detail-icon" />
               <span className="fc-detail-label">File size</span>
-              <span className="fc-detail-value">
-                {fileSize || formatSize(file.size)}
-              </span>
+              <span className="fc-detail-value">{fileSize || formatSize(file.size)}</span>
             </div>
             <div className="fc-detail-row">
               <Cpu size={12} className="fc-detail-icon" />
@@ -97,6 +85,9 @@ function FileCard({ entry, onRemove }: FileCardProps) {
     </div>
   );
 }
+
+// ── Tab definition ─────────────────────────────────────────────────────────────
+type PanelTab = "files" | "export" | "decode";
 
 // ── FilePanel ──────────────────────────────────────────────────────────────────
 export interface FilePanelProps {
@@ -142,9 +133,13 @@ export default function FilePanel({
   onClearDecode,
 }: FilePanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<PanelTab>("files");
+
   const totalTokens = resolvedFiles.reduce((sum, f) => sum + f.tokenEstimate, 0);
   const hasResolved = resolvedFiles.length > 0;
+  const anyExporting = exportingRaw || exportingCompressed || exportingLossless;
 
+  // ── Collapsed strip ────────────────────────────────────────────────────────
   if (collapsed) {
     return (
       <div
@@ -165,131 +160,200 @@ export default function FilePanel({
     );
   }
 
+  // ── Tab bar ────────────────────────────────────────────────────────────────
+  const tabs: { id: PanelTab; label: string; icon: React.ReactNode; badge?: number | string }[] = [
+    {
+      id: "files",
+      label: "Files",
+      icon: <Paperclip size={13} />,
+      badge: entries.length > 0 ? entries.length : undefined,
+    },
+    {
+      id: "export",
+      label: "Export",
+      icon: <Download size={13} />,
+    },
+    {
+      id: "decode",
+      label: "Decode",
+      icon: <ShieldCheck size={13} />,
+      badge: losslessDecodeResult ? "✓" : undefined,
+    },
+  ];
+
   return (
     <aside className="file-panel">
+      {/* Header */}
       <div className="fp-header">
-        <span className="fp-header-title">Attached Files</span>
-        <div className="fp-header-right">
-          {entries.length > 0 && (
-            <span className="fp-file-count">{entries.length}</span>
-          )}
-          <button
-            className="fp-collapse-btn"
-            onClick={() => setCollapsed(true)}
-            title="Collapse panel"
-            type="button"
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
+        <span className="fp-header-title">TokenTrim</span>
+        <button
+          className="fp-collapse-btn"
+          onClick={() => setCollapsed(true)}
+          title="Collapse panel"
+          type="button"
+        >
+          <ChevronRight size={14} />
+        </button>
       </div>
 
-      <div className="fp-body">
-        {entries.length === 0 ? (
-          <div className="fp-empty">
-            <div className="fp-empty-icon">
-              <Upload size={30} strokeWidth={1.5} />
+      {/* Tab bar */}
+      <div className="fp-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`fp-tab${activeTab === tab.id ? " fp-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+            type="button"
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+            {tab.badge !== undefined && (
+              <span className={`fp-tab-badge${tab.badge === "✓" ? " fp-tab-badge--ok" : ""}`}>
+                {tab.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── FILES TAB ─────────────────────────────────────────────────────── */}
+      {activeTab === "files" && (
+        <>
+          <div className="fp-body">
+            {entries.length === 0 ? (
+              <div className="fp-empty">
+                <div className="fp-empty-icon">
+                  <Upload size={30} strokeWidth={1.5} />
+                </div>
+                <p className="fp-empty-title">No files attached yet</p>
+                <p className="fp-empty-sub">
+                  Click the paperclip icon in the prompt bar to attach code files.
+                  Each file is analysed individually.
+                </p>
+              </div>
+            ) : (
+              <div className="fp-file-list">
+                {entries.map((entry) => (
+                  <FileCard key={entry.id} entry={entry} onRemove={onRemove} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {hasResolved && (
+            <div className="fp-summary">
+              <div className="fp-summary-row">
+                <span className="fp-summary-label">
+                  <Layers size={13} /> Total files
+                </span>
+                <span className="fp-summary-value">{resolvedFiles.length}</span>
+              </div>
+              <div className="fp-summary-row fp-summary-tokens">
+                <span className="fp-summary-label fp-summary-label--accent">
+                  <Hash size={13} /> Total Context Tokens
+                </span>
+                <span className="fp-summary-accent">{totalTokens.toLocaleString()}</span>
+              </div>
+              <button
+                className={`fp-compress-btn${compressing ? " fp-compress-btn--loading" : ""}${hasCompressResults ? " fp-compress-btn--done" : ""}`}
+                onClick={onCompress}
+                disabled={compressing}
+                type="button"
+              >
+                {compressing ? (
+                  <><Loader2 size={15} className="fc-spinner" /> Compressing…</>
+                ) : hasCompressResults ? (
+                  <><Zap size={15} /> Re-Compress</>
+                ) : (
+                  <><Zap size={15} /> Compress Files</>
+                )}
+              </button>
             </div>
-            <p className="fp-empty-title">No files attached yet</p>
-            <p className="fp-empty-sub">
-              Click the paperclip icon in the prompt bar to attach code files.
-              Each file is analysed individually.
-            </p>
-          </div>
-        ) : (
-          <div className="fp-file-list">
-            {entries.map((entry) => (
-              <FileCard key={entry.id} entry={entry} onRemove={onRemove} />
-            ))}
-          </div>
-        )}
-      </div>
+          )}
+        </>
+      )}
 
-      {hasResolved && (
-        <div className="fp-summary">
-          <div className="fp-summary-row">
-            <span className="fp-summary-label">
-              <Layers size={13} /> Total files
-            </span>
-            <span className="fp-summary-value">{resolvedFiles.length}</span>
-          </div>
-          <div className="fp-summary-row fp-summary-tokens">
-            <span className="fp-summary-label fp-summary-label--accent">
-              <Hash size={13} /> Total Context Tokens
-            </span>
-            <span className="fp-summary-accent">{totalTokens.toLocaleString()}</span>
-          </div>
-          <button
-            className={`fp-compress-btn${compressing ? " fp-compress-btn--loading" : ""}${hasCompressResults ? " fp-compress-btn--done" : ""}`}
-            onClick={onCompress}
-            disabled={compressing}
-            type="button"
-          >
-            {compressing ? (
-              <>
-                <Loader2 size={15} className="fc-spinner" />
-                Compressing…
-              </>
-            ) : hasCompressResults ? (
-              <>
-                <Zap size={15} />
-                Re-Compress
-              </>
-            ) : (
-              <>
-                <Zap size={15} />
-                Compress Files
-              </>
-            )}
-          </button>
+      {/* ── EXPORT TAB ────────────────────────────────────────────────────── */}
+      {activeTab === "export" && (
+        <div className="fp-tab-pane">
+          {!hasResolved ? (
+            <div className="fp-empty fp-empty--tab">
+              <div className="fp-empty-icon">
+                <Download size={28} strokeWidth={1.5} />
+              </div>
+              <p className="fp-empty-title">No files ready</p>
+              <p className="fp-empty-sub">Attach and analyse files first, then export a bundle.</p>
+            </div>
+          ) : (
+            <>
+              <p className="fp-tab-desc">
+                Download your chat context and files as a single bundle — paste it directly into any LLM.
+              </p>
 
-          {/* ── Pipeline export buttons ───────────────────────────────── */}
-          <div className="fp-pipeline-label">Export Context Bundle</div>
+              <div className="fp-export-group">
+                <div className="fp-export-group-label">Uncompressed</div>
+                <button
+                  className="fp-pipeline-btn fp-pipeline-btn--raw"
+                  onClick={onExportRaw}
+                  disabled={anyExporting}
+                  type="button"
+                  title="Download chat + raw file contents as a single .txt"
+                >
+                  {exportingRaw ? (
+                    <><Loader2 size={14} className="fc-spinner" /> Building…</>
+                  ) : (
+                    <><Download size={14} /> Raw Bundle (.txt)</>
+                  )}
+                </button>
+              </div>
 
-          <button
-            className="fp-pipeline-btn fp-pipeline-btn--raw"
-            onClick={onExportRaw}
-            disabled={exportingRaw || exportingCompressed}
-            type="button"
-            title="Download chat + raw file contents as a single .txt"
-          >
-            {exportingRaw ? (
-              <><Loader2 size={14} className="fc-spinner" /> Building…</>
-            ) : (
-              <><Download size={14} /> Raw Bundle (.txt)</>
-            )}
-          </button>
+              <div className="fp-export-group">
+                <div className="fp-export-group-label">Compressed</div>
+                <button
+                  className="fp-pipeline-btn fp-pipeline-btn--compressed"
+                  onClick={onExportCompressed}
+                  disabled={anyExporting}
+                  type="button"
+                  title="Download chat + TokenTrim-compressed file contents as a single .txt"
+                >
+                  {exportingCompressed ? (
+                    <><Loader2 size={14} className="fc-spinner" /> Compressing…</>
+                  ) : (
+                    <><Download size={14} /> Compressed Bundle (.txt)</>
+                  )}
+                </button>
+              </div>
 
-          <button
-            className="fp-pipeline-btn fp-pipeline-btn--compressed"
-            onClick={onExportCompressed}
-            disabled={exportingRaw || exportingCompressed || exportingLossless}
-            type="button"
-            title="Download chat + compressed file contents as a single .txt"
-          >
-            {exportingCompressed ? (
-              <><Loader2 size={14} className="fc-spinner" /> Building…</>
-            ) : (
-              <><Download size={14} /> Compressed Bundle (.txt)</>
-            )}
-          </button>
+              <div className="fp-export-group">
+                <div className="fp-export-group-label">Lossless</div>
+                <p className="fp-export-group-desc">
+                  Byte-perfect archive. Decode back to original files at any time.
+                </p>
+                <button
+                  className="fp-pipeline-btn fp-pipeline-btn--lossless"
+                  onClick={onExportLossless}
+                  disabled={anyExporting}
+                  type="button"
+                  title="Export a 100% lossless .json bundle — decode it back to exact originals"
+                >
+                  {exportingLossless ? (
+                    <><Loader2 size={14} className="fc-spinner" /> Encoding…</>
+                  ) : (
+                    <><ShieldCheck size={14} /> Lossless Bundle (.json)</>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-          <button
-            className="fp-pipeline-btn fp-pipeline-btn--lossless"
-            onClick={onExportLossless}
-            disabled={exportingRaw || exportingCompressed || exportingLossless}
-            type="button"
-            title="Export a 100% lossless .json bundle that can be decoded back to the exact originals"
-          >
-            {exportingLossless ? (
-              <><Loader2 size={14} className="fc-spinner" /> Encoding…</>
-            ) : (
-              <><ShieldCheck size={14} /> Lossless Bundle (.json)</>
-            )}
-          </button>
-
-          {/* ── Lossless decoder ───────────────────────────────────────── */}
-          <div className="fp-pipeline-label fp-pipeline-label--decode">Recover Original Files</div>
+      {/* ── DECODE TAB ────────────────────────────────────────────────────── */}
+      {activeTab === "decode" && (
+        <div className="fp-tab-pane">
+          <p className="fp-tab-desc">
+            Upload a <strong>Lossless Bundle (.json)</strong> to recover all original files — byte-perfect, zero data loss.
+          </p>
           <LosslessDecoder
             running={losslessDecoding ? "decoding" : null}
             error={losslessError}
