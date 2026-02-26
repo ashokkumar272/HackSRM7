@@ -1,4 +1,4 @@
-import { Scissors, Zap, Code2, BrainCircuit, ArrowRight, Github } from "lucide-react";
+import { Scissors, Zap, Code2, BrainCircuit, ArrowRight, Github, ShieldCheck, Puzzle, FileArchive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Galaxy from "./background";
 
@@ -51,14 +51,15 @@ function LandingPage() {
           Token<span className="accent">Trim</span>
         </h1>
         <p className="hero-subtitle">
-          Compress your codebase context with Huffman coding &amp; intelligent
-          hashing — so LLMs see more while you pay less.
+          Compress entire codebases with Huffman coding &amp; intelligent hashing,
+          then bundle them alongside your chat context — so LLMs see more while
+          you spend less.
         </p>
         <div className="hero-actions">
           <button className="btn btn-primary" onClick={() => navigate("/chat")}>
             Try It Now <ArrowRight size={16} />
           </button>
-          <button className="btn btn-outline">Learn More</button>
+          <a href="#features" className="btn btn-outline">Learn More</a>
         </div>
 
         <div className="hero-stats">
@@ -69,43 +70,58 @@ function LandingPage() {
           <div className="stat-divider" />
           <div className="stat">
             <span className="stat-value">Lossless</span>
-            <span className="stat-label">Decompression</span>
+            <span className="stat-label">Byte-Perfect Recovery</span>
+          </div>
+          <div className="stat-divider" />
+          <div className="stat">
+            <span className="stat-value">2 Modes</span>
+            <span className="stat-label">LLM-Native &amp; Extension</span>
           </div>
           <div className="stat-divider" />
           <div className="stat">
             <span className="stat-value">Any&nbsp;LLM</span>
-            <span className="stat-label">Compatible</span>
+            <span className="stat-label">No Lock-In</span>
           </div>
         </div>
       </header>
 
       {/* Features */}
       <section id="features" className="features">
-        <h2 className="section-title">Why Token Trim?</h2>
+        <h2 className="section-title">Everything in One Tool</h2>
         <p className="section-desc">
-          LLMs charge per token. Large codebases burn through 150K–1M context
-          windows fast. We fix that.
+          From raw compression to full lossless recovery — TokenTrim handles
+          the entire context-efficiency workflow without leaving your browser.
         </p>
         <div className="feature-grid">
           <FeatureCard
-            icon={<Scissors size={28} />}
-            title="Huffman Compression"
-            description="Apply variable‑length encoding to your source files, dramatically shrinking token count while preserving every character."
+            icon={<Code2 size={28} />}
+            title="No-Extension Mode"
+            description="Compresses your code with Huffman coding and smart hashing, then wraps it with self-contained LLM decode instructions. Any model can unpack it — no plugin required."
           />
           <FeatureCard
-            icon={<Code2 size={28} />}
-            title="Smart Hashing"
-            description="Repeated patterns and boilerplate are replaced with compact hash references — the LLM receives a decode map alongside the compressed payload."
+            icon={<Puzzle size={28} />}
+            title="With-Extension Mode"
+            description="Encodes files into a compact lossless JSON payload embedded in a .txt bundle. Pair it with the TokenTrim browser extension for seamless, automatic decoding."
+          />
+          <FeatureCard
+            icon={<FileArchive size={28} />}
+            title="Lossless Archive"
+            description="Export a .json lossless bundle that perfectly restores every original file byte-for-byte. No data loss, no approximation — ideal for sharing full codebases."
+          />
+          <FeatureCard
+            icon={<ShieldCheck size={28} />}
+            title="In-App Decode"
+            description="Upload any .json lossless bundle or .txt with-extension bundle straight into the Decode tab to instantly recover and download all original source files."
           />
           <FeatureCard
             icon={<BrainCircuit size={28} />}
-            title="Context‑Aware Chunking"
-            description="Intelligent splits at function & class boundaries mean the model never loses semantic coherence."
+            title="Chat Context Bundling"
+            description="Attach code files alongside your conversation history. TokenTrim compresses both together into a single portable bundle ready to drop into any LLM chat."
           />
           <FeatureCard
             icon={<Zap size={28} />}
-            title="Drop‑In Integration"
-            description="Works with any agent workflow — paste a file and get a compressed version plus a decode prompt you can prepend."
+            title="Drop-In Integration"
+            description="Works with ChatGPT, Claude, Gemini, and any other LLM interface. Paste a compressed bundle, prepend the decode preamble, and you're done."
           />
         </div>
       </section>
@@ -116,23 +132,23 @@ function LandingPage() {
         <div className="steps">
           <Step
             num="01"
-            title="Paste or Upload Code"
-            description="Drop in any .tsx, .py, .js, or text file. Token Trim reads the raw source."
+            title="Attach Files &amp; Add Context"
+            description="Upload .tsx, .py, .js, or any text file. Add your chat conversation — TokenTrim reads and analyses each file individually, estimating token cost before you compress."
           />
           <Step
             num="02"
-            title="Compress & Hash"
-            description="Huffman coding encodes frequent byte patterns. A hash table maps repeated structures to short keys."
+            title="Choose Your Mode"
+            description="No-Extension: generates a self-decoding .txt bundle any LLM can unpack. With-Extension: lossless JSON payload decoded automatically by the browser plugin. Or export a raw lossless .json archive."
           />
           <Step
             num="03"
-            title="Send to LLM"
-            description="The compressed payload plus a tiny decode preamble is sent to the model — fitting far more context into the same window."
+            title="Download &amp; Send"
+            description="Hit Compress &amp; Export — your bundle downloads instantly. Paste the .txt into any LLM chat window. The embedded decode preamble tells the model exactly how to reconstruct your files."
           />
           <Step
             num="04"
-            title="Decode on Demand"
-            description="Our LLM add-on works as a universal decoder layer — when the model responds, the plugin automatically decompresses the output, giving you clean, readable code without manual intervention."
+            title="Recover Anytime"
+            description="Use the built-in Decode tab to upload any bundle and get every original file back — byte-perfect. No external tools, no extra steps."
           />
         </div>
       </section>
