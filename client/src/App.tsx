@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import LandingPage from './LandingPage'
 import ChatPage from './pages/ChatPage'
+import ExportPage from './pages/ExportPage'
 import AllResultsPage from './pages/AllResultsPage'
 import { CompressResultsProvider } from './contexts/CompressResultsContext'
 
@@ -11,6 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/chat" element={<ChatPage />} />
+        <Route path="/export" element={<ExportPage />} />
         <Route path="/details" element={<AllResultsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

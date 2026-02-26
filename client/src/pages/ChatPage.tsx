@@ -1,15 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Galaxy from "../background";
 import ChatArea from "../components/ChatArea";
 import type { Message } from "../components/ChatArea";
 import PromptInput from "../components/PromptInput";
 import FilePanel from "../components/FilePanel";
-import CompressPreview from "../components/CompressPreview";
 import { useMultiFileAnalyzer } from "../hooks/useMultiFileAnalyzer";
 import { useCompressor } from "../hooks/useCompressor";
-import { usePipeline } from "../hooks/usePipeline";
-import { useLossless } from "../hooks/useLossless";
 import { useCompressResults } from "../contexts/CompressResultsContext";
 
 let msgCounter = 0;
@@ -19,52 +16,36 @@ function uid() {
 
 export default function ChatPage() {
   const navigate = useNavigate();
-  const { setResultsData } = useCompressResults();
+  const { setResultsData, setExportContext } = useCompressResults();
   const [messages, setMessages] = useState<Message[]>([]);
   const { entries: fileEntries, resolvedFiles, addFiles, removeFile } = useMultiFileAnalyzer();
-  const { compResults, compressing, compressFiles, clearResults } = useCompressor();
-  const {
-    running: pipelineRunning,
-    exportRaw,
-    exportCompressed,
-    exportNoExtension,
-    exportWithExtension,
-  } = usePipeline();
-  const {
-    running: losslessRunning,
-    error: losslessError,
-    decodeResult: losslessDecodeResult,
-    exportLossless,
-    decodeLossless,
-    downloadRecovered,
-    clearDecodeResult,
-  } = useLossless();
-  const [previewCollapsed, setPreviewCollapsed] = useState(false);
+  const { compResults, compressing, compressFiles } = useCompressor();
+
+  // Track when compression finishes so we can navigate
+  const wasCompressing = useRef(false);
+  useEffect(() => {
+    if (wasCompressing.current && !compressing && compResults.length > 0) {
+      setResultsData(compResults);
+      navigate("/export");
+    }
+    wasCompressing.current = compressing;
+  }, [compressing, compResults, setResultsData, navigate]);
 
   const handleCompress = useCallback(() => {
     const filesToCompress = fileEntries
       .filter((e) => !e.analysis.sizeError && !e.analysis.fetchError && !e.analysis.analyzing)
       .map((e) => ({ id: e.id, file: e.file }));
     if (filesToCompress.length === 0) return;
+    // Save export context before compressing so ExportPage can use them
+    setExportContext(messages, fileEntries);
     compressFiles(filesToCompress);
-  }, [fileEntries, compressFiles]);
-
-  const handleCloseResults = useCallback(() => {
-    setPreviewCollapsed(false);
-    clearResults();
-  }, [clearResults]);
-
-  const handleShowDetails = useCallback(() => {
-    setResultsData(compResults);
-    navigate("/details");
-  }, [setResultsData, compResults, navigate]);
+  }, [fileEntries, messages, compressFiles, setExportContext]);
 
   const handleSend = useCallback(
     (text: string) => {
       const userMsg: Message = { id: uid(), role: "user", content: text };
       setMessages((prev) => [...prev, userMsg]);
 
-      // Placeholder assistant response
       setTimeout(() => {
         const assistantMsg: Message = {
           id: uid(),
@@ -80,7 +61,6 @@ export default function ChatPage() {
   // ── Main layout ───────────────────────────────────────────────────────────
   return (
     <div className="chat-layout">
-      {/* OGL Galaxy background — kept alive */}
       <div className="galaxy-bg" style={{ zIndex: 0 }}>
         <Galaxy
           speed={0.4}
@@ -95,15 +75,6 @@ export default function ChatPage() {
         />
       </div>
 
-      {/* Left: Compression preview — always mounted so collapsed state persists */}
-      <CompressPreview
-        entries={compResults}
-        onShowDetails={handleShowDetails}
-        onClose={handleCloseResults}
-        collapsed={previewCollapsed}
-        onToggleCollapse={() => setPreviewCollapsed((v) => !v)}
-      />
-
       {/* Center column */}
       <div className="chat-center">
         <ChatArea messages={messages} />
@@ -114,7 +85,7 @@ export default function ChatPage() {
         />
       </div>
 
-      {/* Right file panel */}
+      {/* Right file panel — Files only */}
       <FilePanel
         entries={fileEntries}
         resolvedFiles={resolvedFiles}
@@ -122,22 +93,6 @@ export default function ChatPage() {
         onCompress={handleCompress}
         compressing={compressing}
         hasCompressResults={compResults.length > 0}
-        onExportRaw={() => exportRaw(messages, fileEntries)}
-        onExportCompressed={() => exportCompressed(messages, fileEntries)}
-        onExportNoExtension={() => exportNoExtension(messages, fileEntries)}
-        onExportWithExtension={() => exportWithExtension(messages, fileEntries)}
-        exportingRaw={pipelineRunning === "raw"}
-        exportingCompressed={pipelineRunning === "compressed"}
-        exportingNoExtension={pipelineRunning === "no-extension"}
-        exportingWithExtension={pipelineRunning === "with-extension"}
-        onExportLossless={() => exportLossless(fileEntries)}
-        exportingLossless={losslessRunning === "encoding"}
-        losslessDecoding={losslessRunning === "decoding"}
-        losslessError={losslessError}
-        losslessDecodeResult={losslessDecodeResult}
-        onDecodeLossless={decodeLossless}
-        onDownloadRecovered={downloadRecovered}
-        onClearDecode={clearDecodeResult}
       />
     </div>
   );
