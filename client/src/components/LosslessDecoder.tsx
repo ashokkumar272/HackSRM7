@@ -26,6 +26,8 @@ interface LosslessDecoderProps {
   error: string | null;
   decodeResult: { files: RecoveredFile[]; total_files: number } | null;
   onDecode: (file: File) => void;
+  /** Optional second handler for With-Extension .txt bundles */
+  onDecodeExt?: (file: File) => void;
   onDownloadFile: (file: RecoveredFile) => void;
   onClear: () => void;
 }
@@ -37,11 +39,14 @@ export default function LosslessDecoder({
   error,
   decodeResult,
   onDecode,
+  onDecodeExt,
   onDownloadFile,
   onClear,
 }: LosslessDecoderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputExtRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [draggingExt, setDraggingExt] = useState(false);
 
   // ── File acceptance ───────────────────────────────────────────────────────
 
@@ -55,10 +60,24 @@ export default function LosslessDecoder({
     [onDecode],
   );
 
+  const handleFileExt = useCallback(
+    (file: File) => {
+      if (!file.name.endsWith(".txt")) return;
+      onDecodeExt?.(file);
+    },
+    [onDecodeExt],
+  );
+
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) handleFile(file);
-    e.target.value = ""; // reset so the same file can be loaded again
+    e.target.value = "";
+  };
+
+  const onInputChangeExt = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileExt(file);
+    e.target.value = "";
   };
 
   // ── Drag & drop ───────────────────────────────────────────────────────────
@@ -75,6 +94,18 @@ export default function LosslessDecoder({
     if (file) handleFile(file);
   };
 
+  const onDragOverExt = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingExt(true);
+  };
+  const onDragLeaveExt = () => setDraggingExt(false);
+  const onDropExt = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDraggingExt(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileExt(file);
+  };
+
   // ── Render helpers ────────────────────────────────────────────────────────
 
   const isDecoding = running === "decoding";
@@ -85,32 +116,59 @@ export default function LosslessDecoder({
       <div className="ld-wrap">
         <div className="ld-header">
           <ShieldCheck size={15} className="ld-header-icon" />
-          <span>Decode Lossless Bundle</span>
+          <span>Decode Bundle</span>
         </div>
 
-        <div
-          className={`ld-dropzone${dragging ? " ld-dropzone--active" : ""}`}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          onClick={() => inputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
-          title="Drop a .json lossless bundle here"
-        >
-          <Upload size={22} className="ld-drop-icon" />
-          <p className="ld-drop-title">Drop lossless bundle</p>
-          <p className="ld-drop-sub">
-            .json file exported by TokenTrim Lossless Bundle
-          </p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".json,application/json"
-            onChange={onInputChange}
-            style={{ display: "none" }}
-          />
+        <div className="ld-zones">
+          {/* Zone 1 — Lossless .json */}
+          <div
+            className={`ld-dropzone${dragging ? " ld-dropzone--active" : ""}`}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onClick={() => inputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+            title="Drop a .json lossless bundle here"
+          >
+            <Upload size={20} className="ld-drop-icon" />
+            <p className="ld-drop-title">Lossless Archive</p>
+            <p className="ld-drop-sub">.json bundle</p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".json,application/json"
+              onChange={onInputChange}
+              style={{ display: "none" }}
+            />
+          </div>
+
+          {/* Zone 2 — With-Extension .txt (only shown when handler provided) */}
+          {onDecodeExt && (
+            <div
+              className={`ld-dropzone ld-dropzone--ext${draggingExt ? " ld-dropzone--active" : ""}`}
+              onDragOver={onDragOverExt}
+              onDragLeave={onDragLeaveExt}
+              onDrop={onDropExt}
+              onClick={() => inputExtRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && inputExtRef.current?.click()}
+              title="Drop a .txt with-extension bundle here"
+            >
+              <Upload size={20} className="ld-drop-icon" />
+              <p className="ld-drop-title">With-Extension</p>
+              <p className="ld-drop-sub">.txt bundle</p>
+              <input
+                ref={inputExtRef}
+                type="file"
+                accept=".txt,text/plain"
+                onChange={onInputChangeExt}
+                style={{ display: "none" }}
+              />
+            </div>
+          )}
         </div>
       </div>
     );

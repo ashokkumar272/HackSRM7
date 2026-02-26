@@ -2878,6 +2878,41 @@ button {
   border-color: rgba(251, 191, 36, 0.45);
 }
 
+/* Dual drop-zone layout */
+.ld-zones {
+  display: flex;
+  gap: 0;
+}
+.ld-zones .ld-dropzone {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0;
+}
+.ld-zones .ld-dropzone:first-child {
+  border-radius: 0 0 0 9px;
+  border-right: none;
+}
+.ld-zones .ld-dropzone:last-child {
+  border-radius: 0 0 9px 0;
+}
+/* When there is only one child, restore original radius */
+.ld-zones .ld-dropzone:only-child {
+  border-radius: 0 0 9px 9px;
+  border-right: 1.5px dashed rgba(251, 191, 36, 0.2);
+}
+
+/* With-Extension zone — violet accent */
+.ld-dropzone--ext {
+  border-color: rgba(167, 139, 250, 0.2);
+}
+.ld-dropzone--ext:hover,
+.ld-dropzone--ext.ld-dropzone--active {
+  background: rgba(139, 92, 246, 0.07);
+  border-color: rgba(167, 139, 250, 0.45);
+}
+.ld-dropzone--ext .ld-drop-icon { color: #a78bfa; }
+.ld-dropzone--ext .ld-drop-title { color: #9070c8; }
+
 .ld-drop-icon { color: #fbbf24; opacity: 0.7; }
 
 .ld-drop-title {

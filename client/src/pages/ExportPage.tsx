@@ -208,6 +208,7 @@ export default function ExportPage() {
     decodeResult: losslessDecodeResult,
     exportLossless,
     decodeLossless,
+    decodeWithExtension,
     downloadRecovered,
     clearDecodeResult,
   } = useLossless();
@@ -404,13 +405,16 @@ export default function ExportPage() {
       {activeTab === "decode" && (
         <div className="ep-body">
           <p className="ep-decode-desc">
-            Upload a <strong>Lossless Bundle (.json)</strong> to recover all original files — byte-perfect, zero data loss.
+            Upload a <strong>Lossless Bundle (.json)</strong> or a
+            <strong> With-Extension bundle (.txt)</strong> to recover all
+            original files — byte-perfect, zero data loss.
           </p>
           <LosslessDecoder
             running={losslessRunning}
             error={losslessError}
             decodeResult={losslessDecodeResult}
             onDecode={decodeLossless}
+            onDecodeExt={decodeWithExtension}
             onDownloadFile={downloadRecovered}
             onClear={clearDecodeResult}
           />

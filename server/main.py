@@ -713,3 +713,85 @@ async def pipeline_with_extension(
         f"{compact_json}\n"
         f"--TOKENTRIM-EXTENSION-END--"
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /pipeline/with-extension/decode
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/pipeline/with-extension/decode")
+async def pipeline_with_extension_decode(
+    bundle_file: UploadFile = File(...),
+) -> Dict[str, Any]:
+    """
+    Decode a TokenTrim With-Extension bundle (.txt) back to the original files.
+
+    The bundle is a plain-text file whose entire content is::
+
+        --TOKENTRIM-EXTENSION-BEGIN--
+        {<compact JSON payload>}
+        --TOKENTRIM-EXTENSION-END--
+
+    The JSON payload has the same lossless structure produced by
+    ``POST /pipeline/with-extension`` and is decoded with
+    ``lossless_decode_from_dict``.  Returns the same shape as
+    ``POST /pipeline/lossless/decode``.
+    """
+    raw = await bundle_file.read(MAX_FILE_SIZE * 10 + 1)
+    try:
+        text = raw.decode("utf-8")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Cannot read file as UTF-8: {exc}")
+
+    # Strip sentinels
+    BEGIN = "--TOKENTRIM-EXTENSION-BEGIN--"
+    END   = "--TOKENTRIM-EXTENSION-END--"
+
+    begin_idx = text.find(BEGIN)
+    end_idx   = text.find(END)
+
+    if begin_idx == -1 or end_idx == -1:
+        raise HTTPException(
+            status_code=400,
+            detail="Not a TokenTrim With-Extension bundle (missing sentinel markers).",
+        )
+
+    json_str = text[begin_idx + len(BEGIN) : end_idx].strip()
+
+    try:
+        payload = __import__("json").loads(json_str)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON inside bundle: {exc}")
+
+    if not payload.get("tokentrim_extension_v1"):
+        raise HTTPException(
+            status_code=400,
+            detail="Not a valid TokenTrim With-Extension bundle (missing tokentrim_extension_v1 key).",
+        )
+
+    recovered_files = []
+    for file_dict in payload.get("files", []):
+        try:
+            content = lossless_decode_from_dict(file_dict)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Decode failed for '{file_dict.get('filename', '?')}': {exc}",
+            )
+        recovered_size = len(content.encode("utf-8"))
+        recovered_files.append(
+            {
+                "filename": file_dict["filename"],
+                "language": file_dict["language"],
+                "original_size": file_dict["original_size"],
+                "recovered_size": recovered_size,
+                "match": recovered_size == file_dict["original_size"],
+                "content": content,
+            }
+        )
+
+    return {
+        "files": recovered_files,
+        "total_files": len(recovered_files),
+    }
+

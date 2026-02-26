@@ -180,6 +180,38 @@ export function useLossless() {
     }
   }, []);
 
+  /**
+   * Upload a with-extension .txt bundle, extract the lossless payload from
+   * the sentinel envelope, decode files, and store recovered files in state.
+   */
+  const decodeWithExtension = useCallback(async (bundleFile: File) => {
+    setState({ running: "decoding", error: null, decodeResult: null });
+
+    try {
+      const form = new FormData();
+      form.append("bundle_file", bundleFile);
+
+      const res = await fetch(`${API_BASE}/pipeline/with-extension/decode`, {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(body?.detail ?? `Server error ${res.status}`);
+      }
+
+      const result: DecodeResult = await res.json();
+      setState({ running: null, error: null, decodeResult: result });
+    } catch (err) {
+      setState({
+        running: null,
+        error: err instanceof Error ? err.message : String(err),
+        decodeResult: null,
+      });
+    }
+  }, []);
+
   /** Download a single recovered file as a plain-text file. */
   const downloadRecovered = useCallback((file: RecoveredFile) => {
     downloadText(file.content, file.filename);
@@ -196,6 +228,7 @@ export function useLossless() {
     decodeResult: state.decodeResult,
     exportLossless,
     decodeLossless,
+    decodeWithExtension,
     downloadRecovered,
     clearDecodeResult,
   };
