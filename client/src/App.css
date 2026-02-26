@@ -2214,6 +2214,120 @@ button {
   box-shadow: 0 3px 14px rgba(245, 158, 11, 0.2);
 }
 
+/* ── No-Extension pipeline button ──────────────────────────────────────── */
+.fp-pipeline-btn--no-ext {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.1);
+  border-color: rgba(56, 189, 248, 0.22);
+  margin-top: 0.5rem;
+}
+.fp-pipeline-btn--no-ext:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.2);
+  border-color: rgba(56, 189, 248, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 16px rgba(14, 165, 233, 0.25);
+}
+
+/* ── With-Extension pipeline button ────────────────────────────────────── */
+.fp-pipeline-btn--with-ext {
+  color: #d8b4fe;
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(192, 132, 252, 0.22);
+  margin-top: 0.5rem;
+}
+.fp-pipeline-btn--with-ext:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(192, 132, 252, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 16px rgba(168, 85, 247, 0.25);
+}
+
+/* ── Mode cards (Export tab) ────────────────────────────────────────────── */
+.fp-mode-card {
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.fp-mode-card--no-ext {
+  background: rgba(14, 165, 233, 0.07);
+  border-color: rgba(56, 189, 248, 0.18);
+}
+.fp-mode-card--no-ext:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.fp-mode-card--with-ext {
+  background: rgba(168, 85, 247, 0.07);
+  border-color: rgba(192, 132, 252, 0.18);
+}
+.fp-mode-card--with-ext:hover {
+  border-color: rgba(192, 132, 252, 0.35);
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.fp-mode-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.55rem;
+}
+
+.fp-mode-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fp-mode-card--no-ext .fp-mode-card-icon {
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd3fc;
+}
+
+.fp-mode-card--with-ext .fp-mode-card-icon {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+}
+
+.fp-mode-card-title {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.fp-mode-card-sub {
+  font-size: 0.7rem;
+  color: rgba(148, 163, 184, 0.85);
+  margin-top: 1px;
+}
+
+.fp-mode-card-desc {
+  font-size: 0.74rem;
+  color: rgba(148, 163, 184, 0.9);
+  margin: 0 0 0.1rem;
+  line-height: 1.5;
+}
+
+.fp-mode-card-desc em {
+  font-style: normal;
+  color: #cbd5e1;
+}
+
+/* Minor export group (raw / lossless fallbacks) */
+.fp-export-group--minor {
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .fp-pipeline-label--decode {
   margin-top: 1rem;
   color: #fbbf24;

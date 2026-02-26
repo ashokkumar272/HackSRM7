@@ -23,7 +23,13 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const { entries: fileEntries, resolvedFiles, addFiles, removeFile } = useMultiFileAnalyzer();
   const { compResults, compressing, compressFiles, clearResults } = useCompressor();
-  const { running: pipelineRunning, exportRaw, exportCompressed } = usePipeline();
+  const {
+    running: pipelineRunning,
+    exportRaw,
+    exportCompressed,
+    exportNoExtension,
+    exportWithExtension,
+  } = usePipeline();
   const {
     running: losslessRunning,
     error: losslessError,
@@ -118,8 +124,12 @@ export default function ChatPage() {
         hasCompressResults={compResults.length > 0}
         onExportRaw={() => exportRaw(messages, fileEntries)}
         onExportCompressed={() => exportCompressed(messages, fileEntries)}
+        onExportNoExtension={() => exportNoExtension(messages, fileEntries)}
+        onExportWithExtension={() => exportWithExtension(messages, fileEntries)}
         exportingRaw={pipelineRunning === "raw"}
         exportingCompressed={pipelineRunning === "compressed"}
+        exportingNoExtension={pipelineRunning === "no-extension"}
+        exportingWithExtension={pipelineRunning === "with-extension"}
         onExportLossless={() => exportLossless(fileEntries)}
         exportingLossless={losslessRunning === "encoding"}
         losslessDecoding={losslessRunning === "decoding"}

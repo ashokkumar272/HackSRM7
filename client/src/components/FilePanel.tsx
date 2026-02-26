@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   FileText, Upload, X, Loader2, Hash, Cpu, HardDrive,
   AlertCircle, ChevronDown, ChevronLeft, ChevronRight, Layers, Zap,
-  Paperclip, Download, ShieldCheck,
+  Paperclip, Download, ShieldCheck, Puzzle,
 } from "lucide-react";
 import type { FileEntry, AnalyzedFile } from "../hooks/useMultiFileAnalyzer";
 import { formatSize } from "../hooks/useFileAnalyzer";
@@ -97,10 +97,15 @@ export interface FilePanelProps {
   onCompress: () => void;
   compressing: boolean;
   hasCompressResults: boolean;
+  // Export modes
   onExportRaw: () => void;
   onExportCompressed: () => void;
+  onExportNoExtension: () => void;
+  onExportWithExtension: () => void;
   exportingRaw: boolean;
   exportingCompressed: boolean;
+  exportingNoExtension: boolean;
+  exportingWithExtension: boolean;
   // Lossless pipeline
   onExportLossless: () => void;
   exportingLossless: boolean;
@@ -121,8 +126,12 @@ export default function FilePanel({
   hasCompressResults,
   onExportRaw,
   onExportCompressed,
+  onExportNoExtension,
+  onExportWithExtension,
   exportingRaw,
   exportingCompressed,
+  exportingNoExtension,
+  exportingWithExtension,
   onExportLossless,
   exportingLossless,
   losslessDecoding,
@@ -137,7 +146,10 @@ export default function FilePanel({
 
   const totalTokens = resolvedFiles.reduce((sum, f) => sum + f.tokenEstimate, 0);
   const hasResolved = resolvedFiles.length > 0;
-  const anyExporting = exportingRaw || exportingCompressed || exportingLossless;
+  const anyExporting =
+    exportingRaw || exportingCompressed ||
+    exportingNoExtension || exportingWithExtension ||
+    exportingLossless;
 
   // ── Collapsed strip ────────────────────────────────────────────────────────
   if (collapsed) {
@@ -287,17 +299,76 @@ export default function FilePanel({
           ) : (
             <>
               <p className="fp-tab-desc">
-                Download your chat context and files as a single bundle — paste it directly into any LLM.
+                Choose how the receiving LLM should handle your compressed context.
               </p>
 
-              <div className="fp-export-group">
-                <div className="fp-export-group-label">Uncompressed</div>
+              {/* ── Mode card: No Extension ─────────────────────────── */}
+              <div className="fp-mode-card fp-mode-card--no-ext">
+                <div className="fp-mode-card-header">
+                  <div className="fp-mode-card-icon">
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <div className="fp-mode-card-title">No Extension</div>
+                    <div className="fp-mode-card-sub">LLM self-decodes</div>
+                  </div>
+                </div>
+                <p className="fp-mode-card-desc">
+                  Bundles compressed text with a full decode guide so <em>any</em> LLM
+                  can expand it on its own — no plugin needed.
+                </p>
+                <button
+                  className="fp-pipeline-btn fp-pipeline-btn--no-ext"
+                  onClick={onExportNoExtension}
+                  disabled={anyExporting}
+                  type="button"
+                >
+                  {exportingNoExtension ? (
+                    <><Loader2 size={14} className="fc-spinner" /> Building…</>
+                  ) : (
+                    <><Download size={14} /> Export Bundle (.txt)</>
+                  )}
+                </button>
+              </div>
+
+              {/* ── Mode card: With Extension ───────────────────────── */}
+              <div className="fp-mode-card fp-mode-card--with-ext">
+                <div className="fp-mode-card-header">
+                  <div className="fp-mode-card-icon">
+                    <Puzzle size={18} />
+                  </div>
+                  <div>
+                    <div className="fp-mode-card-title">With Extension</div>
+                    <div className="fp-mode-card-sub">Silent auto-decode</div>
+                  </div>
+                </div>
+                <p className="fp-mode-card-desc">
+                  Lossless payload wrapped in a sentinel — the TokenTrim extension
+                  decodes it silently before the LLM ever sees it. Zero overhead tokens.
+                </p>
+                <button
+                  className="fp-pipeline-btn fp-pipeline-btn--with-ext"
+                  onClick={onExportWithExtension}
+                  disabled={anyExporting}
+                  type="button"
+                >
+                  {exportingWithExtension ? (
+                    <><Loader2 size={14} className="fc-spinner" /> Encoding…</>
+                  ) : (
+                    <><Download size={14} /> Export Bundle (.txt)</>
+                  )}
+                </button>
+              </div>
+
+              {/* ── Fallback: raw + legacy compressed ──────────────── */}
+              <div className="fp-export-group fp-export-group--minor">
+                <div className="fp-export-group-label">Other formats</div>
                 <button
                   className="fp-pipeline-btn fp-pipeline-btn--raw"
                   onClick={onExportRaw}
                   disabled={anyExporting}
                   type="button"
-                  title="Download chat + raw file contents as a single .txt"
+                  title="Plain-text bundle — no compression"
                 >
                   {exportingRaw ? (
                     <><Loader2 size={14} className="fc-spinner" /> Building…</>
@@ -305,41 +376,17 @@ export default function FilePanel({
                     <><Download size={14} /> Raw Bundle (.txt)</>
                   )}
                 </button>
-              </div>
-
-              <div className="fp-export-group">
-                <div className="fp-export-group-label">Compressed</div>
-                <button
-                  className="fp-pipeline-btn fp-pipeline-btn--compressed"
-                  onClick={onExportCompressed}
-                  disabled={anyExporting}
-                  type="button"
-                  title="Download chat + TokenTrim-compressed file contents as a single .txt"
-                >
-                  {exportingCompressed ? (
-                    <><Loader2 size={14} className="fc-spinner" /> Compressing…</>
-                  ) : (
-                    <><Download size={14} /> Compressed Bundle (.txt)</>
-                  )}
-                </button>
-              </div>
-
-              <div className="fp-export-group">
-                <div className="fp-export-group-label">Lossless</div>
-                <p className="fp-export-group-desc">
-                  Byte-perfect archive. Decode back to original files at any time.
-                </p>
                 <button
                   className="fp-pipeline-btn fp-pipeline-btn--lossless"
                   onClick={onExportLossless}
                   disabled={anyExporting}
                   type="button"
-                  title="Export a 100% lossless .json bundle — decode it back to exact originals"
+                  title="100% lossless JSON archive — decode back to originals"
                 >
                   {exportingLossless ? (
                     <><Loader2 size={14} className="fc-spinner" /> Encoding…</>
                   ) : (
-                    <><ShieldCheck size={14} /> Lossless Bundle (.json)</>
+                    <><ShieldCheck size={14} /> Lossless Archive (.json)</>
                   )}
                 </button>
               </div>

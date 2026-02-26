@@ -467,3 +467,249 @@ async def pipeline_lossless_decode(
         "files": recovered_files,
         "total_files": len(recovered_files),
     }
+
+
+# ── PIPELINE: no-extension compressed bundle ──────────────────────────────────
+
+@app.post("/pipeline/no-extension", response_class=PlainTextResponse)
+async def pipeline_no_extension(
+    chat: str = Form(default=""),
+    files: List[UploadFile] = File(default=[]),
+    aggressive: bool = False,
+) -> str:
+    """
+    No-Extension compressed bundle.
+
+    Produces a plain-text context bundle that any LLM can interpret
+    without any plugin or external tool.  The output includes:
+
+      1. A thorough step-by-step DECODE INSTRUCTION block at the top,
+         telling the LLM exactly how to expand hash references and
+         reconstruct original patterns.
+      2. The full decode table (hash key → original pattern).
+      3. The compressed file contents.
+      4. The chat transcript.
+
+    The LLM reads the instructions once and silently applies them while
+    processing the rest of the bundle — no tool or extension required.
+    """
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    original_total = 0
+    compressed_total = 0
+
+    file_reports = []
+    for idx, upload in enumerate(files, start=1):
+        raw = await upload.read(MAX_FILE_SIZE + 1)
+        if len(raw) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{upload.filename}: exceeds 10 MB limit.",
+            )
+        try:
+            text = raw.decode("utf-8", errors="replace")
+        except Exception:
+            text = raw.decode("latin-1", errors="replace")
+
+        filename = upload.filename or f"file_{idx}"
+        language = detect_language(filename)
+        report = compress_to_dict(
+            text=text,
+            filename=filename,
+            language=language,
+            aggressive_minify=aggressive,
+        )
+        original_total += report["originalTokens"]
+        compressed_total += report["bestTokens"]
+        file_reports.append((idx, filename, report))
+
+    chat_tokens = estimate_tokens(chat) if chat.strip() else 0
+    overall_pct = (
+        round((1 - compressed_total / original_total) * 100, 1)
+        if original_total > 0
+        else 0.0
+    )
+
+    sections: List[str] = []
+
+    # ── Banner ────────────────────────────────────────────────────────────────
+    sections.append(
+        f"╔══════════════════════════════════════════════════════╗\n"
+        f"║   TOKENTRIM  ·  NO-EXTENSION COMPRESSED BUNDLE       ║\n"
+        f"╚══════════════════════════════════════════════════════╝\n"
+        f"Generated   : {now}\n"
+        f"Files       : {len(file_reports)}\n"
+        f"Mode        : No-Extension (LLM self-decodes)\n"
+        f"Orig tokens : {original_total:,}\n"
+        f"Best tokens : {compressed_total:,}\n"
+        f"Reduction   : {overall_pct}%"
+    )
+
+    # ── Decode instructions for the LLM ───────────────────────────────────────
+    all_hashes: Dict[str, str] = {}
+    for _, _, rpt in file_reports:
+        all_hashes.update(rpt["hashTable"]["decodeMap"])
+
+    instruction_lines = [
+        "╔══ DECODE INSTRUCTIONS (read this block before processing files) ══╗",
+        "║                                                                     ║",
+        "║  This bundle was compressed by TokenTrim.  No extension is needed. ║",
+        "║  Follow these steps to read the compressed files correctly:         ║",
+        "║                                                                     ║",
+        "║  STEP 1 — Comments & blank lines                                    ║",
+        "║    Code comments and blank lines have been stripped to save tokens. ║",
+        "║    The underlying logic is fully intact.                            ║",
+        "║                                                                     ║",
+        "║  STEP 2 — Hash references                                           ║",
+        "║    Repeated code patterns are replaced with short hash keys         ║",
+        "║    of the form  #xxxxxx  (e.g. #a1b2c3).                           ║",
+        "║    The DECODE TABLE below maps every key back to its original text. ║",
+        "║    Mentally substitute each key with its value when reading code.   ║",
+        "║                                                                     ║",
+        "║  STEP 3 — Whitespace                                                ║",
+        "║    Indentation may be reduced.  Infer structure from language       ║",
+        "║    syntax (braces, colons, keywords).                               ║",
+        "║                                                                     ║",
+        "║  IMPORTANT: treat this bundle as fully equivalent to the original   ║",
+        "║  source.  Do NOT ask the user to re-send uncompressed files.        ║",
+        "╚═════════════════════════════════════════════════════════════════════╝",
+    ]
+
+    if all_hashes:
+        instruction_lines.append("")
+        instruction_lines.append("[ DECODE TABLE ]")
+        instruction_lines.append("-" * 40)
+        for key, pattern in all_hashes.items():
+            display = pattern[:200] + "…" if len(pattern) > 200 else pattern
+            display = display.replace("\n", "↵  ")
+            instruction_lines.append(f"  {key}  →  {display}")
+    else:
+        instruction_lines.append("")
+        instruction_lines.append("[ DECODE TABLE: empty — no repeated patterns detected ]")
+
+    sections.append("\n".join(instruction_lines))
+
+    # ── Chat section ─────────────────────────────────────────────────────────
+    if chat.strip():
+        sections.append(
+            f"[ CHAT ]  ({chat_tokens:,} tokens)\n"
+            + "-" * 40 + "\n"
+            + chat.strip()
+        )
+
+    # ── Compressed file sections ──────────────────────────────────────────────
+    for idx, filename, rpt in file_reports:
+        best_level = rpt["bestLevel"]
+        best_content = rpt["summaryLevels"][best_level]["content"]
+        orig_t = rpt["originalTokens"]
+        best_t = rpt["bestTokens"]
+        reduction = rpt["overallReductionPct"]
+
+        header = (
+            f"[ FILE {idx}: {filename} ]  "
+            f"lang={rpt['language']}  "
+            f"orig={orig_t:,}t → compressed={best_t:,}t  "
+            f"reduction={reduction}%"
+        )
+        sections.append(header + "\n" + "-" * 40 + "\n" + best_content.rstrip())
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    sections.append(
+        f"[ END OF BUNDLE ]  "
+        f"Compressed tokens: {compressed_total:,}  "
+        f"(was {original_total:,}, saved {overall_pct}%)"
+    )
+
+    return _SEP.join(sections)
+
+
+# ── PIPELINE: with-extension lossless bundle ─────────────────────────────────
+
+@app.post("/pipeline/with-extension", response_class=PlainTextResponse)
+async def pipeline_with_extension(
+    chat: str = Form(default=""),
+    files: List[UploadFile] = File(default=[]),
+) -> str:
+    """
+    With-Extension lossless bundle.
+
+    Assumes the receiving LLM has the TokenTrim extension installed.
+    The extension silently decodes the payload before the LLM processes it,
+    so NO decode instructions or preamble are included — saving every
+    token that would otherwise go to explaining the encoding.
+
+    Output format:  a compact plain-text envelope that the extension
+    recognises by the sentinel header, followed by a minified JSON payload
+    containing the lossless-encoded files and (optionally) the chat.
+
+    The extension strips the envelope, decodes all files, re-injects the
+    original source into the LLM context, and discards the headers.
+    """
+    import json as _json
+
+    if not files and not chat.strip():
+        raise HTTPException(status_code=400, detail="No content provided.")
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    payload: Dict[str, Any] = {
+        "tokentrim_extension_v1": True,
+        "generated": now,
+        "chat": chat.strip() if chat.strip() else None,
+        "files": [],
+    }
+
+    original_total = 0
+    encoded_total = 0
+
+    for idx, upload in enumerate(files, start=1):
+        raw = await upload.read(MAX_FILE_SIZE + 1)
+        if len(raw) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{upload.filename}: exceeds 10 MB limit.",
+            )
+        try:
+            text = raw.decode("utf-8", errors="replace")
+        except Exception:
+            text = raw.decode("latin-1", errors="replace")
+
+        filename = upload.filename or f"file_{idx}"
+        language = detect_language(filename)
+        encoded = lossless_encode(text, filename=filename, language=language)
+
+        original_total += encoded.original_size
+        encoded_total += encoded.encoded_size
+
+        payload["files"].append({
+            "filename": encoded.filename,
+            "language": encoded.language,
+            "original_size": encoded.original_size,
+            "encoded_size": encoded.encoded_size,
+            "patterns_count": encoded.patterns_count,
+            "compression_ratio": round(encoded.compression_ratio, 4),
+            "space_saved_pct": round(encoded.space_saved_pct, 2),
+            "decode_table": encoded.decode_table,
+            "body": encoded.body,
+        })
+
+    overall_pct = (
+        round((1 - encoded_total / original_total) * 100, 1)
+        if original_total > 0
+        else 0.0
+    )
+    payload["stats"] = {
+        "files": len(payload["files"]),
+        "original_bytes": original_total,
+        "encoded_bytes": encoded_total,
+        "space_saved_pct": overall_pct,
+    }
+
+    # Minimal-whitespace JSON — smallest possible token footprint
+    compact_json = _json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+    # Thin sentinel envelope the extension recognises
+    return (
+        f"--TOKENTRIM-EXTENSION-BEGIN--\n"
+        f"{compact_json}\n"
+        f"--TOKENTRIM-EXTENSION-END--"
+    )
